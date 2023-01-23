@@ -4,6 +4,7 @@ import icalendar
 import datetime
 import hashlib
 import time
+import re
 import sys
 
 OFFSET = -time.timezone
@@ -25,8 +26,16 @@ for key, value in events['results'].items():
     start_time = int(value['printouts']['Start'][0]['timestamp']) - OFFSET
     end_time = int(value['printouts']['End'][0]['timestamp']) - OFFSET
 
-    # remove preceding 'Events/YYYY-MM-DD ' from pagename to result in the actual event name
-    eventname = key[18:]
+    # remove preceding 'Events/YYYY-MM-DD ' if existant from pagename to result in the actual event name
+    result = re.search(r"Events\/....-..-.. (.*)", key)
+    if result:
+        groups = result.groups()
+        if len (groups) == 1:
+            eventname = groups[0]
+        else:
+            eventname = key
+    else:
+        eventname = key
 
     event = icalendar.Event()
     event.add('summary', eventname)
