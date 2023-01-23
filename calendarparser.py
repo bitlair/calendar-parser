@@ -4,6 +4,7 @@ import icalendar
 import datetime
 import hashlib
 import time
+import sys
 
 OFFSET = -time.timezone
 events_url = "https://bitlair.nl/Special:Ask/-5B-5BCategory:Event-5D-5D-20-5B-5BStart::%E2%89%A519-20January-202023-5D-5D/-3FStart/-3FEnd/-3FEvent-20location/mainlabel%3D/limit%3D50/order%3DASC/sort%3DStart/prettyprint%3Dtrue/format%3Djson"
@@ -45,6 +46,6 @@ for key, value in events['results'].items():
     cal.add_component(event)
 
 
-f = open('output.ics', 'wb')
+f = open(sys.argv[1], 'wb')
 f.write(cal.to_ical())
 f.close()
