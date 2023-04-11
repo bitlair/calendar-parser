@@ -3,7 +3,7 @@
 import requests
 import json
 import icalendar
-import datetime
+from datetime import datetime, timedelta
 import hashlib
 import time
 import re
@@ -23,8 +23,8 @@ cal.add('version', '2.0')
 
 for key, value in events['results'].items():
     # unix timestamps from semwiki are not in UTC but in $localtime
-    start_time = int(value['printouts']['Start'][0]['timestamp']) - OFFSET
-    end_time = int(value['printouts']['End'][0]['timestamp']) - OFFSET
+    start_time = datetime.fromtimestamp(int(value['printouts']['Start'][0]['timestamp']) - OFFSET)
+    end_time = datetime.fromtimestamp(int(value['printouts']['End'][0]['timestamp']) - OFFSET)
 
     # remove preceding 'Events/YYYY-MM-DD ' if existant from pagename to result in the actual event name
     result = re.search(r"Events\/....-..-.. (.*)", key)
@@ -37,13 +37,18 @@ for key, value in events['results'].items():
     else:
         eventname = key
 
+    # If an event ends when humans are usually asleep, truncate the time range to midnight.
+    # This prevents calendar items from cluttering the next day when viewed.
+    if end_time.hour < 6:
+        end_time = datetime(end_time.year, end_time.month, end_time.day, 23, 59) - timedelta(days=1)
+
     event = icalendar.Event()
     event.add('summary', eventname)
 
     event.add('description', f'{key}\n {value["fullurl"]}')
-    event.add('dtstamp', datetime.datetime.now())
-    event.add('dtstart', datetime.datetime.fromtimestamp(start_time))
-    event.add('dtend', datetime.datetime.fromtimestamp(end_time))
+    event.add('dtstamp', datetime.now())
+    event.add('dtstart', start_time)
+    event.add('dtend', end_time)
     event.add('url', value['fullurl'])
     event['location'] = icalendar.vText(value['printouts']['Event location'][0]['fulltext'])
 
