@@ -21,21 +21,24 @@ cal = icalendar.Calendar()
 cal.add('prodid', '-//Bitlair event calendar//bitlair.nl//')
 cal.add('version', '2.0')
 
-for key, value in events['results'].items():
-    # unix timestamps from semwiki are not in UTC but in $localtime
-    start_time = datetime.fromtimestamp(int(value['printouts']['Start'][0]['timestamp']) - OFFSET)
-    end_time = datetime.fromtimestamp(int(value['printouts']['End'][0]['timestamp']) - OFFSET)
+for page_path, value in events['results'].items():
+    # Unix timestamps from semwiki are not in UTC but in $localtime
+    start_time = None
+    end_time = None
+    if (tt := value['printouts']['Start']) and tt:
+        start_time = datetime.fromtimestamp(int(tt[0]['timestamp']) - OFFSET)
+    if (tt := value['printouts']['End']) and tt:
+        end_time = datetime.fromtimestamp(int(tt[0]['timestamp']) - OFFSET)
 
-    # remove preceding 'Events/YYYY-MM-DD ' if existant from pagename to result in the actual event name
-    result = re.search(r"Events\/....-..-.. (.*)", key)
-    if result:
-        groups = result.groups()
-        if len (groups) == 1:
-            eventname = groups[0]
-        else:
-            eventname = key
-    else:
-        eventname = key
+    if not start_time:
+        continue
+    if not end_time:
+        end_time = start_time + timedelta(hours=4)
+
+    # Remove preceding 'Events/YYYY-MM-DD ' if existant from pagename to result in the actual event name
+    eventname = page_path
+    if (m := re.search(r"Events\/....-..-.. (.*)", page_path)) and m:
+        eventname = m[1]
 
     # If an event ends when humans are usually asleep, truncate the time range to midnight.
     # This prevents calendar items from cluttering the next day when viewed.
@@ -45,7 +48,7 @@ for key, value in events['results'].items():
     event = icalendar.Event()
     event.add('summary', eventname)
 
-    event.add('description', f'{key}\n {value["fullurl"]}')
+    event.add('description', f'{page_path}\n {value["fullurl"]}')
     event.add('dtstamp', datetime.now())
     event.add('dtstart', start_time)
     event.add('dtend', end_time)
