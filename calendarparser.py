@@ -10,7 +10,7 @@ import re
 import sys
 
 OFFSET = -time.timezone
-events_url = "https://bitlair.nl/Special:Ask/-5B-5BCategory:Event-5D-5D-20-5B-5BStart::%E2%89%A519-20January-202024-5D-5D/-3FStart/-3FEnd/-3FEvent-20location/mainlabel%3D/limit%3D50/order%3DASC/sort%3DStart/prettyprint%3Dtrue/format%3Djson"
+events_url = "https://bitlair.nl/Special:Ask/-5B-5BCategory:Event-5D-5D-20-5B-5BStart::%E2%89%A519-20January-202024-5D-5D/-3FStart/-3FEnd/-3FStatus/-3FEvent-20location/mainlabel%3D/limit%3D50/order%3DASC/sort%3DStart/prettyprint%3Dtrue/format%3Djson"
 # above URL asks for all events and returns their name, start, end and location
 events_page = requests.get(events_url)
 events = events_page.json()
@@ -54,6 +54,18 @@ for page_path, value in events['results'].items():
     event.add('dtend', end_time)
     event.add('url', value['fullurl'])
     event['location'] = icalendar.vText(value['printouts']['Event location'][0]['fulltext'])
+
+    if len(value['printouts']['Status']) != 0:
+        # a status is defined, see if we can parse it to a status as per RFC5545 3.8.1.11
+        status_value = value['printouts']['Status'][0]['fulltext'].upper()
+
+        # use a few synonyms in Dutch and English just to be sure
+        if status_value in ("CANCELED", "CANCELLED"): # damn 'muricans!
+            event['status'] = 'CANCELLED'
+        elif status_value in ("TENTATIVE", "TBD", "MAYBE", "NNB", "NTB", "NOG NIET BEKEND"): 
+            event['status'] = 'TENTATIVE'
+        elif status_value in ("CONFIRMED", "DEFINITIVE", "DEFINITIEF", "BEVESTIGD"):
+            event['status'] = 'CONFIRMED'
 
     url_hash_substr = hashlib.md5(value["fullurl"].encode()).hexdigest()[0:10]
     # we need to use something that is relatively safe as a UID, so use the first 10 characters of the hexdigest of the wikiurl
