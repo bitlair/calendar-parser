@@ -53,7 +53,7 @@ for page_path, value in events['results'].items():
     event.add('dtstart', start_time)
     event.add('dtend', end_time)
     event.add('url', value['fullurl'])
-    event['location'] = icalendar.vText(value['printouts']['Event location'][0]['fulltext'])
+    event['location'] = icalendar.vText(value['printouts']['EventLocation'][0]['fulltext'])
 
     if len(value['printouts']['Status']) != 0:
         # a status is defined, see if we can parse it to a status as per RFC5545 3.8.1.11
